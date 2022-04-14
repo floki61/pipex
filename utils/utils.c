@@ -6,7 +6,7 @@
 /*   By: oel-berh <oel-berh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/04 20:41:16 by oel-berh          #+#    #+#             */
-/*   Updated: 2022/04/05 01:08:22 by oel-berh         ###   ########.fr       */
+/*   Updated: 2022/04/12 17:59:49 by oel-berh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,4 +56,31 @@ void	free_tab(char **path)
 		free(path[i]);
 		i++;
 	}
+}
+char	*ft_substr(char *s, int start, int len)
+{
+	char	*c;
+	int		j;
+
+	j = 0;
+	if (!s)
+		return (NULL);
+	if (s[0] == '\0' || start > ft_strlen(s))
+	{
+		c = malloc(1 * sizeof(char));
+		if (!c)
+			return (NULL);
+		c[0] = '\0';
+		return (c);
+	}
+	c = (char *)malloc((len + 1) * sizeof(char));
+	if (!c)
+		return (NULL);
+	while (s[start] && len > 0)
+	{
+		c[j++] = s[start++];
+		len--;
+	}
+	c[j] = '\0';
+	return (c);
 }
