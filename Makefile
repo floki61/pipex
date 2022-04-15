@@ -6,6 +6,7 @@ SRCS =	utils/ft_split.c		\
 		utils/get_next_line.c	\
 		pipex.c					\
 		utils/utils.c			\
+		utils/utils2.c			\
 		heredoc.c				\
 
 all : $(NAME)

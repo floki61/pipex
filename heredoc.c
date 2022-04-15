@@ -1,30 +1,17 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   heredoc.c                                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: oel-berh <oel-berh@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2022/04/14 22:41:07 by oel-berh          #+#    #+#             */
+/*   Updated: 2022/04/15 05:11:45 by oel-berh         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "pipex.h"
 
-void	noname(char *limitter, int fd)
-{
-	char *instruction = NULL;
-	// int	i;
-	write(2, "->\n", 3);
-	// i = ft_strlen(limitter) - 1;
-	instruction = get_next_line(0);
-	if (instruction)	
-		instruction[ft_strlen(instruction) - 1] = '\0';
-
-	while(instruction)
-	{
-		if(strcmp(limitter,instruction) == 0)
-		{
-			close(0);
-			close(fd);
-			return ;
-		}
-		ft_putstr_fd(instruction,fd);
-		ft_putstr_fd("\n", fd);
-		free(instruction);
-		instruction = get_next_line(0);
-		instruction[ft_strlen(instruction) - 1] = '\0';
-	}  
-}
 void	child2(char	**argv, char **env, int *end, int fd)
 {
 	char	**path1;
@@ -49,26 +36,10 @@ void	child2(char	**argv, char **env, int *end, int fd)
 		free(cmd1);
 		i++;
 	}
-	error("zsh: command not found: ", argv[2]);
+	error("zsh: command not found: ", argv[3]);
 	close(fd);
 	exit (0);
 }
-
-void	ft_putstr_fd(char *s, int fd)
-{
-	int	i;
-
-	i = 0;
-	if (s)
-	{
-		while (s[i])
-		{
-			write (fd, &s[i], 1);
-			i++;
-		}
-	}
-}
-
 
 void	parent2(char	**argv, char	**env, int *end, int fd)
 {
@@ -79,7 +50,6 @@ void	parent2(char	**argv, char	**env, int *end, int fd)
 
 	i = 0;
 	close(end[1]);
-	write(2, "parent\n",7);
 	cmd2 = ft_split(argv[4], ' ');
 	dup2(end[0], STDIN_FILENO);
 	dup2(fd, STDOUT_FILENO);
@@ -95,40 +65,34 @@ void	parent2(char	**argv, char	**env, int *end, int fd)
 		free(cmd);
 		i++;
 	}
-	error("zsh: command not found: ", argv[3]);
+	error("zsh: command not found: ", argv[4]);
 	close(fd);
 	exit(127);
 }
-void here_doc(int	argc,char **argv, char	**env)
-{
-	int fd1;
-	int fd2;
-	int pid;
-	int end[2];
 
-	fd1 = open(argv[2],	 O_CREAT | O_RDWR | O_TRUNC, 0644);
-	fd2	= open(argv[argc - 1], O_CREAT | O_RDWR , 0644);
-	if(fd2 < 0 || fd1 < 0)
+void	here_doc(int argc, char **argv, char	**env)
+{
+	t_node	*files;
+	int		pid;
+	int		end[2];
+
+	files = malloc(sizeof(t_node));
+	files->fd1 = open("/tmp/.fd", O_CREAT | O_RDWR, 0777);
+	files->fd2 = open(argv[argc - 1], O_CREAT | O_RDWR | O_APPEND, 0777);
+	if (files->fd2 < 0 || files->fd1 < 0 || pipe(end) == -1)
 		exit (0);
-	if (pipe(end) == -1)
-		exit (0);
-	
-	noname(argv[2], fd1);
+	read_from_0(argv[2], files->fd1);
 	pid = fork();
-	if(pid == -1)
+	if (pid == -1)
 		perror("Fork");
-	else if(pid == 0)
+	else if (pid == 0)
 	{
-		// printf("hey\n");
-		// printf("hey\n");
-		fd1 = open(argv[2], O_RDONLY);
-		child2(argv, env, end, fd1);
+		files->fd1 = open("/tmp/.fd", O_RDONLY);
+		child2(argv, env, end, files->fd1);
 	}
-	else
-	{
-		waitpid(-1, NULL, 0);
-		fd1 = dup(end[0]);
-		parent2(argv, env, end, fd2);
-	}
+	waitpid(-1, NULL, 0);
+	files->fd1 = dup(end[0]);
+	unlink("/tmp/.fd");
+	parent2(argv, env, end, files->fd2);
 	exit(0);
 }

@@ -6,7 +6,7 @@
 /*   By: oel-berh <oel-berh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/04 20:41:16 by oel-berh          #+#    #+#             */
-/*   Updated: 2022/04/12 17:59:49 by oel-berh         ###   ########.fr       */
+/*   Updated: 2022/04/14 22:50:42 by oel-berh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,7 @@ void	free_tab(char **path)
 		i++;
 	}
 }
+
 char	*ft_substr(char *s, int start, int len)
 {
 	char	*c;

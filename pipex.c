@@ -6,13 +6,13 @@
 /*   By: oel-berh <oel-berh@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/04/04 20:38:20 by oel-berh          #+#    #+#             */
-/*   Updated: 2022/04/12 21:50:55 by oel-berh         ###   ########.fr       */
+/*   Updated: 2022/04/15 05:41:00 by oel-berh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
-void	child(char	*argv, char **env, int *end, int fd1,int fd2,int j, int fd)
+void	child(char	**argv, char **env, int *end, t_node *files)
 {
 	char	**path1;
 	char	**cmd;
@@ -21,21 +21,10 @@ void	child(char	*argv, char **env, int *end, int fd1,int fd2,int j, int fd)
 
 	i = 0;
 	close(end[0]);
-	cmd = ft_split(argv, ' ');
-	if(j != 1)
-		dup2(end[1], STDOUT_FILENO);
-	if(j == 0)
-		dup2(fd1, STDIN_FILENO);
-	else if(j == 2)
-		dup2(fd, STDIN_FILENO);
-	else
-	{
-		close(end[1]);
-		dup2(fd, STDIN_FILENO);
-		dup2(fd2, STDOUT_FILENO);
-	}
-	if (access(argv, F_OK) == 0)
-		execve(argv, cmd, env);
+	cmd = ft_split(argv[files->j], ' ');
+	dup_files(argv, end, files);
+	if (access(argv[files->j], F_OK) == 0)
+		execve(argv[files->j], cmd, env);
 	path1 = path(env);
 	while (path1[i])
 	{
@@ -46,66 +35,63 @@ void	child(char	*argv, char **env, int *end, int fd1,int fd2,int j, int fd)
 		free(cmd1);
 		i++;
 	}
-	error("zsh: command not found: ", argv);
-	close(fd1);
-	close(fd2);
+	error("zsh: command not found: ", argv[files->j]);
+	close(files->fd1);
+	close(files->fd2);
 	exit (0);
 }
 
-int	pipex(int   argc, char	**argv, char	**env, int fd1, int fd2)
+void	parent(int *i, int *end, t_node *files)
+{
+	if (*i == 1)
+	{
+		while (waitpid (-1, NULL, 0) > 1)
+			;
+	}
+	close(end[1]);
+	files->fd = dup(end[0]);
+	close(end[0]);
+	files->j = files->j + 1;
+	(*i)--;
+}
+
+int	pipex(int argc, char	**argv, char	**env, t_node	*files)
 {
 	int		end[2];
-	int		fd;
 	int		pid;
-    int     i;
-    int     j;
+	int		i;
 
-    i = argc - 3;
-    j = 2;
-    while(i)
-    {
+	i = argc - 3;
+	files->argc = argc - 3;
+	files->j = 2;
+	while (i)
+	{
+		files->data = i;
 		if (pipe(end) == -1)
 			return (0);
-	    pid = fork();
-	    if (pid == -1)
-		    perror("Fork: ");
-	    else if (pid == 0 && i == argc - 3)
-		    child(argv[j], env, end, fd1, fd2, 0, fd);
-		else if (pid == 0 && i != 1)
-			child(argv[j], env, end, fd1, fd2, 2, fd);
-		else if(pid == 0 && i == 1)
-		    	child(argv[j], env, end, fd1, fd2, 1, fd);
+		pid = fork();
+		if (pid == -1)
+			perror("Fork");
+		else if (pid == 0)
+			child(argv, env, end, files);
 		else
-		{
-			while(waitpid(-1, NULL, 0) > 1)
-			close(end[1]);
-			fd = dup(end[0]);
-			close(end[0]);
-			j++;
-			i--;
-		}
-    }
+			parent(&i, end, files);
+	}
 	return (0);
-} 
+}
 
 int	main(int argc, char	**argv, char	**env)
 {
-	int	fd1;
-	int	fd2;
+	t_node	*files;
 
+	files = malloc(sizeof(t_node));
 	if (argc < 5)
 		exit (0);
-	if(!(strcmp(argv[1], "here_doc")))
+	if (!(strcmp(argv[1], "here_doc")))
 		here_doc(argc, argv, env);
-	fd1 = open(argv[1], O_RDONLY);
-	fd2 = open(argv[argc - 1], O_CREAT | O_RDWR | O_TRUNC, 0777);
-	if (fd2 < 0)
+	files->fd2 = open(argv[argc - 1], O_CREAT | O_RDWR | O_TRUNC, 0777);
+	if (files->fd2 < 0)
 		exit (0);
-	else if (fd1 < 0)
-	{
-		error("zsh: no such file or directory: ", argv[1]);
-		exit (0);
-	}
-	pipex(argc, argv, env, fd1, fd2);
+	pipex(argc, argv, env, files);
 	return (0);
 }
